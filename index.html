@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,7 +51,11 @@
             transition: 0.3s;
         }
 
-        input:focus { border-color: var(--pink); outline: none; background: #fff; }
+        input:focus {
+            border-color: var(--pink);
+            outline: none;
+            background: #fff;
+        }
 
         button {
             background: var(--pink);
@@ -65,9 +70,17 @@
             transition: 0.3s;
         }
 
-        button:hover { background: var(--deep-red); transform: translateY(-2px); }
+        button:hover {
+            background: var(--deep-red);
+            transform: translateY(-2px);
+        }
 
-        #game-interface { display: none; text-align: center; width: 100%; position: relative; }
+        #game-interface {
+            display: none;
+            text-align: center;
+            width: 100%;
+            position: relative;
+        }
 
         .heart-main {
             font-size: 10rem;
@@ -101,8 +114,15 @@
             z-index: 50;
         }
 
-        .gift-item { font-size: 1.5rem; cursor: pointer; transition: 0.2s; }
-        .gift-item:hover { transform: scale(1.3); }
+        .gift-item {
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .gift-item:hover {
+            transform: scale(1.3);
+        }
 
         #letter-modal {
             display: none;
@@ -155,6 +175,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div id="auth-section" class="container">
@@ -162,8 +183,9 @@
         <div id="login-form">
             <input type="text" id="logName" placeholder="Your Name">
             <input type="text" id="logRoom" placeholder="Secret Room Code">
-            <button onclick="login()">Enter Space</button>
-            <p onclick="toggleForm()" style="cursor:pointer; color:var(--pink); font-size:0.8rem; margin-top:20px;">Create Room</p>
+            <button id="loginBtn" onclick="login()">Enter Space</button>
+            <p onclick="toggleForm()" style="cursor:pointer; color:var(--pink); font-size:0.8rem; margin-top:20px;">
+                Create Room</p>
         </div>
 
         <div id="reg-form" style="display:none">
@@ -179,8 +201,9 @@
                 <option value="ilikemebetter">I Like Me Better</option>
                 <option value="herewithme">Here With Me</option>
             </select>
-            <button onclick="register()">Register</button>
-            <p onclick="toggleForm()" style="cursor:pointer; color:var(--pink); font-size:0.8rem; margin-top:15px;">Back to Login</p>
+            <button id="regBtn" onclick="register()">Register</button>
+            <p onclick="toggleForm()" style="cursor:pointer; color:var(--pink); font-size:0.8rem; margin-top:15px;">Back
+                to Login</p>
         </div>
     </div>
 
@@ -188,7 +211,9 @@
         <div id="status-bar">Searching for partner...</div>
         <div class="heart-main" id="heart">❤️</div>
         <div id="pulse-count" style="font-size: 1.8rem; color:var(--deep-red); margin-top:20px;">0 Pulses</div>
-        <button id="letterBtn" style="display:none; width:200px; margin:20px auto; color:var(--pink); background:none; border:2px solid var(--pink);" onclick="openLetter()">View Letter</button>
+        <button id="letterBtn"
+            style="display:none; width:200px; margin:20px auto; color:var(--pink); background:none; border:2px solid var(--pink);"
+            onclick="openLetter()">View Letter</button>
         <div id="gift-panel" style="display:none">
             <span class="gift-item" onclick="sendGift('🌹')">🌹</span>
             <span class="gift-item" onclick="sendGift('🍫')">🍫</span>
@@ -207,10 +232,14 @@
     <audio id="musicPlayer" loop></audio>
 
     <script>
-        const BACKEND_URL = "https://valentconnect.onrender.com";
-        const socket = io(BACKEND_URL, { 
-            transports: ['websocket'],
-            withCredentials: true 
+        // UPDATED BACKEND URL
+        const BACKEND_URL = "https://valentconnect-backend.vercel.app";
+        
+        // Initialize socket - Note: real-time updates may be limited on Serverless
+        const socket = io(BACKEND_URL, {
+            transports: ['websocket', 'polling'],
+            withCredentials: true,
+            autoConnect: false
         });
 
         let myRoom = "";
@@ -232,26 +261,45 @@
         }
 
         async function register() {
+            const btn = document.getElementById('regBtn');
+            btn.innerText = "Registering...";
             const roomInput = document.getElementById('regRoom').value.trim().toUpperCase();
-            const res = await fetch(`${BACKEND_URL}/api/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    roomCode: roomInput,
-                    userA: document.getElementById('p1').value.trim(),
-                    userB: document.getElementById('p2').value.trim(),
-                    letterA: document.getElementById('l1').value,
-                    letterB: document.getElementById('l2').value,
-                    song: document.getElementById('songChoice').value
-                })
-            });
-            if (res.ok) { alert("Registered!"); toggleForm(); }
+            
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        roomCode: roomInput,
+                        userA: document.getElementById('p1').value.trim(),
+                        userB: document.getElementById('p2').value.trim(),
+                        letterA: document.getElementById('l1').value,
+                        letterB: document.getElementById('l2').value,
+                        song: document.getElementById('songChoice').value
+                    })
+                });
+                if (res.ok) { 
+                    alert("Registered successfully!"); 
+                    toggleForm(); 
+                } else {
+                    alert("Registration failed. Room code might be taken.");
+                }
+            } catch (err) {
+                alert("Error connecting to server.");
+            } finally {
+                btn.innerText = "Register";
+            }
         }
 
         async function login() {
+            const btn = document.getElementById('loginBtn');
             myName = document.getElementById('logName').value.trim();
             myRoom = document.getElementById('logRoom').value.trim().toUpperCase();
-            
+
+            if(!myName || !myRoom) return alert("Please fill in both fields");
+
+            btn.innerText = "Connecting...";
+
             try {
                 const res = await fetch(`${BACKEND_URL}/api/login`, {
                     method: 'POST',
@@ -264,15 +312,20 @@
                     document.getElementById('letterBody').innerText = data.letter;
                     document.getElementById('pulse-count').innerText = `${data.pulseCount} Pulses`;
                     document.getElementById('musicPlayer').src = songPaths[data.song] || songPaths.perfect;
-                    
+
                     document.getElementById('auth-section').style.display = 'none';
                     document.getElementById('game-interface').style.display = 'block';
+                    
+                    // Start live connection
+                    socket.connect();
                     socket.emit('join-room', myRoom);
                 } else {
-                    alert("Invalid Credentials");
+                    alert("Login failed. Check your name and room code.");
                 }
             } catch (e) {
-                alert("Server is waking up... please wait 10 seconds and try again.");
+                alert("Server is booting up. Try again in 5 seconds.");
+            } finally {
+                btn.innerText = "Enter Space";
             }
         }
 
@@ -285,6 +338,7 @@
 
         function sendGift(emoji) {
             socket.emit('send-gift', { roomId: myRoom, emoji: emoji });
+            showFloatingGift(emoji); // Show for yourself too
         }
 
         socket.on('receive-gift', d => showFloatingGift(d.emoji));
@@ -301,8 +355,9 @@
 
         socket.on('receive-pulse', d => triggerVisuals(d.x, d.y, false));
         socket.on('update-count', count => { document.getElementById('pulse-count').innerText = `${count} Pulses`; });
+        
         socket.on('update-ui', d => {
-            document.getElementById('status-bar').innerText = d.isPartnerPresent ? "Partner Connected ❤️" : "Searching...";
+            document.getElementById('status-bar').innerText = d.isPartnerPresent ? "Partner Connected ❤️" : "Waiting for partner...";
             document.getElementById('letterBtn').style.display = d.isPartnerPresent ? 'block' : 'none';
             document.getElementById('gift-panel').style.display = d.isPartnerPresent ? 'flex' : 'none';
         });
@@ -312,10 +367,10 @@
             r.className = 'ripple';
             r.style.left = (x * window.innerWidth) + 'px';
             r.style.top = (y * window.innerHeight) + 'px';
-            if(!isMe) r.style.borderColor = "#ffccd5";
+            if (!isMe) r.style.borderColor = "#ffccd5";
             document.body.appendChild(r);
             setTimeout(() => r.remove(), 1200);
-            
+
             const h = document.getElementById('heart');
             h.style.transform = "scale(1.2)";
             setTimeout(() => h.style.transform = "scale(1)", 100);
@@ -332,4 +387,5 @@
         }
     </script>
 </body>
+
 </html>
